@@ -32,10 +32,11 @@ app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "nba-secret-change-in-prod")
 CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 
-_chat_history: list[dict] = []
-
 PDF_FILENAME = os.getenv("NBA_PDF_FILENAME", "NBA_PDF_FILENAME.pdf")
 PDF_PATH     = BASE_DIR / "knowledge_base" / PDF_FILENAME
+
+history_lock = threading.Lock()
+_chat_history: list[dict] = []
 
 
 def _init_rag():
@@ -75,16 +76,21 @@ def chat():
 
     top_k  = int(os.getenv("RAG_TOP_K", 5))
     chunks = retrieve(user_msg, top_k=top_k)
+    
+    with history_lock:
+        active_history = list(_chat_history[-8:])
+
     answer = generate_answer(
         query=user_msg,
         context_chunks=chunks,
-        chat_history=_chat_history[-8:],
+        chat_history=active_history,
     )
 
-    _chat_history.append({"role": "user",      "content": user_msg})
-    _chat_history.append({"role": "assistant", "content": answer})
-    if len(_chat_history) > 40:
-        del _chat_history[:10]
+    with history_lock:
+        _chat_history.append({"role": "user",      "content": user_msg})
+        _chat_history.append({"role": "assistant", "content": answer})
+        if len(_chat_history) > 40:
+            del _chat_history[:10]
 
     return jsonify({
         "answer":      answer,
@@ -153,7 +159,8 @@ def rebuild_index():
 
 @app.route("/api/clear-history", methods=["POST"])
 def clear_history():
-    _chat_history.clear()
+    with history_lock:
+        _chat_history.clear()
     return jsonify({"cleared": True})
 
 
