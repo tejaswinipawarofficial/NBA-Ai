@@ -1,12 +1,14 @@
 'use strict';
 
+const RENDER_BACKEND_URL = 'https://nba-ai.onrender.com';
+
 const API = {
-  chat:      '/api/chat',
-  status:    '/api/status',
-  criteria:  '/api/criteria',
-  copo:      '/api/copomapping',
-  rebuild:   '/api/rebuild-index',
-  clearHist: '/api/clear-history',
+  chat:      `${RENDER_BACKEND_URL}/api/chat`,
+  status:    `${RENDER_BACKEND_URL}/api/status`,
+  criteria:  `${RENDER_BACKEND_URL}/api/criteria`,
+  copo:      `${RENDER_BACKEND_URL}/api/copomapping`,
+  rebuild:   `${RENDER_BACKEND_URL}/api/rebuild-index`,
+  clearHist: `${RENDER_BACKEND_URL}/api/clear-history`,
 };
 
 const POS = ['PO1','PO2','PO3','PO4','PO5','PO6','PO7','PO8','PO9','PO10','PO11','PO12'];
