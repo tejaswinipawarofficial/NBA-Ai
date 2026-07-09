@@ -437,7 +437,7 @@ function renderMd(md) {
   md = md.replace(/^### (.+)$/gm,'<h3>$1</h3>');
   md = md.replace(/^## (.+)$/gm,'<h2>$1</h2>');
   md = md.replace(/^# (.+)$/gm,'<h1>$1</h1>');
-  md = md.replace(/\*\frac{}{}\*\*/g,'<strong>$1</strong>');
+  md = md.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
   md = md.replace(/\*(.+?)\*/g,'<em>$1</em>');
   md = md.replace(/```[\w]*\n([\s\S]+?)```/g,'<pre><code>$1</code></pre>');
   md = md.replace(/`(.+?)`/g,'<code>$1</code>');
