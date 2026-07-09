@@ -21,7 +21,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-sys.path.insert(0, str(Path(__file__).parent))
+BASE_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(BASE_DIR))
 
 from agent_config import NBA_CRITERIA, PROGRAMME_OUTCOMES, CO_PO_LEVELS
 from utils.rag_pipeline import initialize_rag, retrieve, get_status as rag_status
@@ -34,7 +35,7 @@ CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 _chat_history: list[dict] = []
 
 PDF_FILENAME = os.getenv("NBA_PDF_FILENAME", "NBA_PDF_FILENAME.pdf")
-PDF_PATH     = Path("knowledge_base") / PDF_FILENAME
+PDF_PATH     = BASE_DIR / "knowledge_base" / PDF_FILENAME
 
 
 def _init_rag():
@@ -148,12 +149,11 @@ def clear_history():
     return jsonify({"cleared": True})
 
 
+logger.info("Launching global asynchronous RAG pipeline initialization thread...")
+threading.Thread(target=_init_rag, daemon=True).start()
+
 if __name__ == "__main__":
     port  = int(os.getenv("PORT", 8080))
     debug = os.getenv("FLASK_ENV", "development") == "development"
-    
-    logger.info("Launching asynchronous RAG pipeline initialization thread...")
-    threading.Thread(target=_init_rag, daemon=True).start()
-    
-    logger.info("Starting NBA Accreditation Assistant on port %d", port)
+    logger.info("Starting local development server on port %d", port)
     app.run(host="0.0.0.0", port=port, debug=debug)
