@@ -1,9 +1,3 @@
-"""
-app.py
-──────
-NBA Accreditation Assistant – Flask Application
-"""
-
 from __future__ import annotations
 
 import logging
@@ -18,7 +12,6 @@ from flask_cors import CORS
 
 load_dotenv()
 
-# Fix OpenMP DLL conflict between FAISS and Anaconda's OpenMP on Windows
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
 logging.basicConfig(
@@ -36,7 +29,7 @@ from utils.watsonx_client import generate_answer, get_model_info
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "nba-secret-change-in-prod")
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 
 _chat_history: list[dict] = []
 
@@ -58,8 +51,6 @@ def _init_rag():
             PDF_PATH,
         )
 
-
-# ── Routes ────────────────────────────────────────────────────
 
 @app.route("/")
 def index():
@@ -119,8 +110,8 @@ def copomapping():
 
     return jsonify({
         "course_name":     course_name,
-        "cos":              cos,
-        "pos":              list(PROGRAMME_OUTCOMES.keys()),
+        "cos":             cos,
+        "pos":             list(PROGRAMME_OUTCOMES.keys()),
         "po_descriptions": PROGRAMME_OUTCOMES,
         "analysis":        answer,
         "co_po_levels":    CO_PO_LEVELS,
@@ -132,7 +123,7 @@ def status():
     return jsonify({
         "rag":          rag_status(),
         "model":        get_model_info(),
-        "pdf_path":      str(PDF_PATH),
+        "pdf_path":     str(PDF_PATH),
         "pdf_exists":   PDF_PATH.exists(),
         "criteria_count": len(NBA_CRITERIA),
     })
@@ -158,11 +149,9 @@ def clear_history():
 
 
 if __name__ == "__main__":
-    # Fallback to Render's default routing port 10000 if PORT variable isn't bound yet
-    port  = int(os.getenv("PORT", 10000))
+    port  = int(os.getenv("PORT", 8080))
     debug = os.getenv("FLASK_ENV", "development") == "development"
     
-    # Spin up RAG processing inside a daemon thread so it doesn't hold up the port binding
     logger.info("Launching asynchronous RAG pipeline initialization thread...")
     threading.Thread(target=_init_rag, daemon=True).start()
     
