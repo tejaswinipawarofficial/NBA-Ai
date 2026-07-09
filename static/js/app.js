@@ -1,6 +1,6 @@
 'use strict';
 
-const RENDER_BACKEND_URL = 'https://nba-ai.onrender.com';
+const RENDER_BACKEND_URL = 'https://nba-ai-zfxb.onrender.com';
 
 const API = {
   chat:      `${RENDER_BACKEND_URL}/api/chat`,
