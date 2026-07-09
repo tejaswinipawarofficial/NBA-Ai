@@ -29,7 +29,7 @@ from utils.watsonx_client import generate_answer, get_model_info
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "nba-secret-change-in-prod")
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 
 _chat_history: list[dict] = []
 
