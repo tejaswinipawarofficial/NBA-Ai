@@ -1,9 +1,3 @@
-"""
-app.py
-──────
-NBA Accreditation Assistant – Flask Application
-"""
-
 from __future__ import annotations
 
 import logging
@@ -17,7 +11,6 @@ from flask_cors import CORS
 
 load_dotenv()
 
-# Fix OpenMP DLL conflict between FAISS and Anaconda's OpenMP on Windows
 import os as _os
 _os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
@@ -61,8 +54,6 @@ def _init_rag():
 
 _init_rag()
 
-
-# ── Routes ────────────────────────────────────────────────────
 
 @app.route("/")
 def index():
@@ -161,7 +152,7 @@ def clear_history():
 
 
 if __name__ == "__main__":
-    port  = int(os.getenv("PORT", 5000))
+    port  = int(os.getenv("PORT", 8080))
     debug = os.getenv("FLASK_ENV", "development") == "development"
     logger.info("Starting NBA Accreditation Assistant on port %d", port)
     app.run(host="0.0.0.0", port=port, debug=debug)
