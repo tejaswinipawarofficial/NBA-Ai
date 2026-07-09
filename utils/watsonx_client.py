@@ -32,11 +32,12 @@ def _get_model():
         url        = os.getenv("WATSONX_URL", "https://au-syd.ml.cloud.ibm.com").strip()
         
         supported_models = [
+            "ibm/granite-3-8b-instruct",
             "ibm/granite-8b-code-instruct",
             "meta-llama/llama-3-3-70b-instruct",
         ]
 
-        preferred_model = os.getenv("GRANITE_MODEL_ID", "ibm/granite-8b-code-instruct").strip()
+        preferred_model = os.getenv("GRANITE_MODEL_ID", "ibm/granite-3-8b-instruct").strip()
         model_id = preferred_model if preferred_model in supported_models else supported_models[0]
 
         if not api_key or not project_id:
@@ -148,7 +149,7 @@ def generate_answer(
 
 def get_model_info() -> dict:
     return {
-        "model_id":            os.getenv("GRANITE_MODEL_ID", "ibm/granite-8b-code-instruct"),
+        "model_id":            os.getenv("GRANITE_MODEL_ID", "ibm/granite-3-8b-instruct"),
         "url":                 os.getenv("WATSONX_URL", "https://au-syd.ml.cloud.ibm.com"),
         "project_configured":  bool(os.getenv("WATSONX_PROJECT_ID", "").strip()),
         "api_key_configured":  bool(os.getenv("IBM_CLOUD_API_KEY", "").strip()),
