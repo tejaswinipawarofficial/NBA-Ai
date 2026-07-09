@@ -1,12 +1,12 @@
 'use strict';
 
 const API = {
-  chat:      '/api/chat',
-  status:    '/api/status',
-  criteria:  '/api/criteria',
-  copo:      '/api/copomapping',
-  rebuild:   '/api/rebuild-index',
-  clearHist: '/api/clear-history',
+  chat:      'https://nba-ai-zfxb.onrender.com/api/chat',
+  status:    'https://nba-ai-zfxb.onrender.com/api/status',
+  criteria:  'https://nba-ai-zfxb.onrender.com/api/criteria',
+  copo:      'https://nba-ai-zfxb.onrender.com/api/copomapping',
+  rebuild:   'https://nba-ai-zfxb.onrender.com/api/rebuild-index',
+  clearHist: 'https://nba-ai-zfxb.onrender.com/api/clear-history',
 };
 
 const POS = ['PO1','PO2','PO3','PO4','PO5','PO6','PO7','PO8','PO9','PO10','PO11','PO12'];
@@ -101,7 +101,7 @@ function initChatBackgroundAnimation() {
     ctx.strokeStyle = isDark ? 'rgba(124, 58, 237, 0.04)' : 'rgba(124, 58, 237, 0.05)';
 
     for (let x = 0; x < canvas.width; x += gridSize) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); stroke();
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
     }
     for (let y = 0; y < canvas.height; y += gridSize) {
       ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
