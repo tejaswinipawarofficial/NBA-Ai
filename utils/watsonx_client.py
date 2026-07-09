@@ -47,11 +47,9 @@ def _get_model():
         credentials = Credentials(url=url, api_key=api_key)
 
         params = {
+            GenParams.DECODING_METHOD:    "greedy",
             GenParams.MAX_NEW_TOKENS:     int(os.getenv("MAX_NEW_TOKENS", 1024)),
             GenParams.MIN_NEW_TOKENS:     1,
-            GenParams.TEMPERATURE:        0.0,
-            GenParams.TOP_P:              0.9,
-            GenParams.TOP_K:              50,
             GenParams.REPETITION_PENALTY: 1.1,
             GenParams.STOP_SEQUENCES:     ["<|end|>", "<|endoftext|>", "<|user|>", "<|assistant|>", "<|system|>"],
         }
