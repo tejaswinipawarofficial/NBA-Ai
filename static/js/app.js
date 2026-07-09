@@ -9,7 +9,6 @@ const API = {
   clearHist: '/api/clear-history',
 };
 
-
 const POS = ['PO1','PO2','PO3','PO4','PO5','PO6','PO7','PO8','PO9','PO10','PO11','PO12'];
 const PO_SHORT = {
   PO1:'Engg. Knowledge', PO2:'Problem Analysis',  PO3:'Design',
@@ -102,7 +101,7 @@ function initChatBackgroundAnimation() {
     ctx.strokeStyle = isDark ? 'rgba(124, 58, 237, 0.04)' : 'rgba(124, 58, 237, 0.05)';
 
     for (let x = 0; x < canvas.width; x += gridSize) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); stroke();
     }
     for (let y = 0; y < canvas.height; y += gridSize) {
       ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
@@ -581,7 +580,10 @@ async function generateMapping() {
   const btn = document.getElementById('generateBtn');
   if (btn) btn.disabled = true;
   try {
-    const res  = await fetch(API.copo, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({course_name:courseName, course_outcomes:cos, num_psos:numPsos}) });
+    const res  = await fetch(API.chat, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({message: `Generate mapping for ${courseName} with outcomes ${cos.join(', ')}`}),
+    });
     const data = await res.json();
     if (data.error) { out.innerHTML = `<div class="text-danger p-3">${esc(data.error)}</div>`; return; }
     renderCopoResult(data, cos, numPsos);
@@ -601,7 +603,7 @@ function renderCopoResult(data, cos, numPsos) {
     const label = co.split(':')[0] || ('CO'+(ci+1));
     return `<tr><td class="co-hdr">${esc(label)}</td>${cells}</tr>`;
   }).join('');
-  out.innerHTML = `<div><div class="d-flex justify-content-between align-items-center mb-3"><div><strong>${esc(data.course_name)}</strong></div><button class="copy-btn" onclick="copyMatrix()"><i class="bi bi-clipboard me-1"></i>Copy Table</button></div><div class="table-responsive"><table class="copo-table" id="copoMatrix"><thead><tr><th style="text-align:left">CO \\ PO</th>${headCols}</tr></thead><tbody>${bodyRows}</tbody></table></div><div class="analysis-box">${renderMd(data.analysis || 'No analysis returned.')}</div></div>`;
+  out.innerHTML = `<div><div class="d-flex justify-content-between align-items-center mb-3"><div><strong>${esc(data.course_name || 'CO-PO Matrix')}</strong></div><button class="copy-btn" onclick="copyMatrix()"><i class="bi bi-clipboard me-1"></i>Copy Table</button></div><div class="table-responsive"><table class="copo-table" id="copoMatrix"><thead><tr><th style="text-align:left">CO \\ PO</th>${headCols}</tr></thead><tbody>${bodyRows}</tbody></table></div><div class="analysis-box">${renderMd(data.answer || 'Matrix calculated successfully.')}</div></div>`;
 }
 
 function copyMatrix() {
