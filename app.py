@@ -1,3 +1,9 @@
+"""
+app.py
+──────
+NBA Accreditation Assistant – Flask Application
+"""
+
 from __future__ import annotations
 
 import logging
@@ -12,6 +18,7 @@ from flask_cors import CORS
 
 load_dotenv()
 
+# Fix OpenMP DLL conflict between FAISS and Anaconda's OpenMP on Windows
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
 logging.basicConfig(
@@ -21,8 +28,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-BASE_DIR = Path(__file__).resolve().parent
-sys.path.insert(0, str(BASE_DIR))
+sys.path.insert(0, str(Path(__file__).parent))
 
 from agent_config import NBA_CRITERIA, PROGRAMME_OUTCOMES, CO_PO_LEVELS
 from utils.rag_pipeline import initialize_rag, retrieve, get_status as rag_status
@@ -30,13 +36,12 @@ from utils.watsonx_client import generate_answer, get_model_info
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "nba-secret-change-in-prod")
-CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
+CORS(app)
+
+_chat_history: list[dict] = []
 
 PDF_FILENAME = os.getenv("NBA_PDF_FILENAME", "NBA_PDF_FILENAME.pdf")
-PDF_PATH     = BASE_DIR / "knowledge_base" / PDF_FILENAME
-
-history_lock = threading.Lock()
-_chat_history: list[dict] = []
+PDF_PATH     = Path("knowledge_base") / PDF_FILENAME
 
 
 def _init_rag():
@@ -54,13 +59,7 @@ def _init_rag():
         )
 
 
-@app.after_request
-def add_header(response):
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
-    return response
-
+# ── Routes ────────────────────────────────────────────────────
 
 @app.route("/")
 def index():
@@ -76,21 +75,16 @@ def chat():
 
     top_k  = int(os.getenv("RAG_TOP_K", 5))
     chunks = retrieve(user_msg, top_k=top_k)
-    
-    with history_lock:
-        active_history = list(_chat_history[-8:])
-
     answer = generate_answer(
         query=user_msg,
         context_chunks=chunks,
-        chat_history=active_history,
+        chat_history=_chat_history[-8:],
     )
 
-    with history_lock:
-        _chat_history.append({"role": "user",      "content": user_msg})
-        _chat_history.append({"role": "assistant", "content": answer})
-        if len(_chat_history) > 40:
-            del _chat_history[:10]
+    _chat_history.append({"role": "user",      "content": user_msg})
+    _chat_history.append({"role": "assistant", "content": answer})
+    if len(_chat_history) > 40:
+        del _chat_history[:10]
 
     return jsonify({
         "answer":      answer,
@@ -125,8 +119,8 @@ def copomapping():
 
     return jsonify({
         "course_name":     course_name,
-        "cos":             cos,
-        "pos":             list(PROGRAMME_OUTCOMES.keys()),
+        "cos":              cos,
+        "pos":              list(PROGRAMME_OUTCOMES.keys()),
         "po_descriptions": PROGRAMME_OUTCOMES,
         "analysis":        answer,
         "co_po_levels":    CO_PO_LEVELS,
@@ -138,7 +132,7 @@ def status():
     return jsonify({
         "rag":          rag_status(),
         "model":        get_model_info(),
-        "pdf_path":     str(PDF_PATH),
+        "pdf_path":      str(PDF_PATH),
         "pdf_exists":   PDF_PATH.exists(),
         "criteria_count": len(NBA_CRITERIA),
     })
@@ -159,16 +153,18 @@ def rebuild_index():
 
 @app.route("/api/clear-history", methods=["POST"])
 def clear_history():
-    with history_lock:
-        _chat_history.clear()
+    _chat_history.clear()
     return jsonify({"cleared": True})
 
 
-logger.info("Launching global asynchronous RAG pipeline initialization thread...")
-threading.Thread(target=_init_rag, daemon=True).start()
-
 if __name__ == "__main__":
-    port  = int(os.getenv("PORT", 8080))
+    # Fallback to Render's default routing port 10000 if PORT variable isn't bound yet
+    port  = int(os.getenv("PORT", 10000))
     debug = os.getenv("FLASK_ENV", "development") == "development"
-    logger.info("Starting local development server on port %d", port)
+    
+    # Spin up RAG processing inside a daemon thread so it doesn't hold up the port binding
+    logger.info("Launching asynchronous RAG pipeline initialization thread...")
+    threading.Thread(target=_init_rag, daemon=True).start()
+    
+    logger.info("Starting NBA Accreditation Assistant on port %d", port)
     app.run(host="0.0.0.0", port=port, debug=debug)
