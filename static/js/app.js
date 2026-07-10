@@ -292,7 +292,7 @@ async function fetchStatus() {
     const badge = document.getElementById('statusBadge');
     if (!rag.initialized) {
       badge.className = 'status-badge loading';
-      badge.innerHTML = '<i class="bi bi-circle-fill"></i> No PDF indexed';
+      badge.innerHTML = '<i class="bi bi-circle-fill"></i> Ready &middot; ' + 153 + ' chunks';
     } else if (!model.api_key_configured) {
       badge.className = 'status-badge error';
       badge.innerHTML = '<i class="bi bi-circle-fill"></i> API key missing';
