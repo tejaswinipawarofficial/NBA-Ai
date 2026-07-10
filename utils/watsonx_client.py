@@ -1,3 +1,14 @@
+"""
+utils/watsonx_client.py
+────────────────────────
+Wrapper around IBM watsonx.ai Runtime for text generation using Granite models.
+
+Credentials are read from environment variables (loaded via python-dotenv):
+  IBM_CLOUD_API_KEY   – your IBM Cloud API key
+  WATSONX_PROJECT_ID  – your watsonx.ai project ID
+  WATSONX_URL         – regional endpoint, e.g. https://au-syd.ml.cloud.ibm.com
+"""
+
 from __future__ import annotations
 
 import logging
@@ -6,6 +17,7 @@ from typing import List
 
 logger = logging.getLogger(__name__)
 
+# Lazy-initialised model instance
 _model = None
 
 
@@ -17,6 +29,7 @@ def _get_model():
     try:
         from ibm_watsonx_ai import Credentials
 
+        # Import path changed in ibm-watsonx-ai >= 1.2; try both
         try:
             from ibm_watsonx_ai.foundation_models import ModelInference
         except ImportError:
@@ -27,18 +40,23 @@ def _get_model():
         except ImportError:
             from ibm_watsonx_ai.foundation_models.schema import TextGenParameters as GenParams
 
+        # ── Read credentials from environment variables (set via .env) ─────────
         api_key    = os.getenv("IBM_CLOUD_API_KEY", "").strip()
         project_id = os.getenv("WATSONX_PROJECT_ID", "").strip()
         url        = os.getenv("WATSONX_URL", "https://au-syd.ml.cloud.ibm.com").strip()
-        
+        # granite-3-8b-instruct is not available in this environment.
+        # Supported models (per environment):
+        #   - ibm/granite-8b-code-instruct
+        #   - ibm/granite-guardian-3-8b (safety classifier; do NOT use for generation)
+        #   - meta-llama/llama-3-3-70b-instruct
         supported_models = [
-            "ibm/granite-3-8b-instruct",
             "ibm/granite-8b-code-instruct",
             "meta-llama/llama-3-3-70b-instruct",
         ]
 
-        preferred_model = os.getenv("GRANITE_MODEL_ID", "ibm/granite-3-8b-instruct").strip()
+        preferred_model = os.getenv("GRANITE_MODEL_ID", "ibm/granite-8b-code-instruct").strip()
         model_id = preferred_model if preferred_model in supported_models else supported_models[0]
+
 
         if not api_key or not project_id:
             raise ValueError(
@@ -48,11 +66,13 @@ def _get_model():
         credentials = Credentials(url=url, api_key=api_key)
 
         params = {
-            GenParams.DECODING_METHOD:    "greedy",
             GenParams.MAX_NEW_TOKENS:     int(os.getenv("MAX_NEW_TOKENS", 1024)),
-            GenParams.MIN_NEW_TOKENS:     1,
+            GenParams.MIN_NEW_TOKENS:     10,
+            GenParams.TEMPERATURE:        0.1,
+            GenParams.TOP_P:              0.9,
+            GenParams.TOP_K:              50,
             GenParams.REPETITION_PENALTY: 1.1,
-            GenParams.STOP_SEQUENCES:     ["<|end|>", "<|endoftext|>", "<|user|>", "<|assistant|>", "<|system|>"],
+            GenParams.STOP_SEQUENCES:     ["<|end|>", "<|endoftext|>"],
         }
 
         _model = ModelInference(
@@ -69,7 +89,12 @@ def _get_model():
         raise
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+#  Prompt builder
+# ──────────────────────────────────────────────────────────────────────────────
+
 def _build_prompt(query: str, context_chunks: List[str], chat_history: List[dict]) -> str:
+    """Build a Granite-3 instruct-format prompt."""
     from agent_config import AGENT_INSTRUCTIONS
 
     system_prompt = AGENT_INSTRUCTIONS.strip()
@@ -109,22 +134,22 @@ def _build_prompt(query: str, context_chunks: List[str], chat_history: List[dict
     return prompt
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+#  Public API
+# ──────────────────────────────────────────────────────────────────────────────
+
 def generate_answer(
     query: str,
     context_chunks: List[str],
     chat_history: List[dict] | None = None,
 ) -> str:
+    """Generate a grounded answer via watsonx.ai Granite model."""
     if chat_history is None:
         chat_history = []
 
     prompt = _build_prompt(query, context_chunks, chat_history)
-
-    logger.info("=" * 80)
-    logger.info("PROMPT SENT TO GRANITE")
-    logger.info(prompt[:4000])
-    logger.info("=" * 80)
-
     logger.debug("Prompt length: %d chars", len(prompt))
+
     try:
         model  = _get_model()
         result = model.generate_text(prompt=prompt)
@@ -148,9 +173,13 @@ def generate_answer(
 
 
 def get_model_info() -> dict:
+    """Return model metadata for health checks."""
     return {
-        "model_id":            os.getenv("GRANITE_MODEL_ID", "ibm/granite-3-8b-instruct"),
+        # Report the configured/preferred model; actual runtime may fall back
+        # if GRANITE_MODEL_ID is not supported in this environment.
+        "model_id":            os.getenv("GRANITE_MODEL_ID", "ibm/granite-8b-code-instruct"),
         "url":                 os.getenv("WATSONX_URL", "https://au-syd.ml.cloud.ibm.com"),
         "project_configured":  bool(os.getenv("WATSONX_PROJECT_ID", "").strip()),
         "api_key_configured":  bool(os.getenv("IBM_CLOUD_API_KEY", "").strip()),
     }
+
